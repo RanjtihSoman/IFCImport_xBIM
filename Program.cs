@@ -2,21 +2,19 @@
 using System.IO;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Xbim;
 using Xbim.Ifc;
-using Xbim.Ifc2x3.Kernel;
-using Xbim.Ifc2x3.UtilityResource;
 using Xbim.Ifc2x3.ProductExtension;
 using Xbim.Ifc2x3.Extensions;
-using Xbim.Ifc4;
-using Xbim.Ifc4.UtilityResource;
 using Xbim.Ifc4.Interfaces;
-using Xbim.Common.Logging;
+using Xbim.Common.Geometry;
 using Xbim.ModelGeometry.Scene;
-using Xbim.Presentation.ModelGeomInfo;
 
+using Xbim.Presentation;
+
+using System.Text;
+
+using Xbim.XbimExtensions;
+using Xbim.Common.XbimExtensions;
 
 namespace xBIM_IFC_Trial
 {
@@ -89,8 +87,9 @@ namespace xBIM_IFC_Trial
 
     class Program
     {
-        const string file = "F:/TUM/STUDIES/THESIS/BIMtoUnity/xBIM/IFC_samplefiles/2011-09-14-Clinic-IFC/trialbim_simple.ifc";
-        
+        const string file = "D:\\THESIS_ANI\\xBIM\\2011-09-14-Duplex-IFC\\Duplex_A_20110907_optimized.ifc";
+        //const string file = "D:\\THESIS_ANI\\xBIM\\simplegeometry_trial.ifc";
+
         public static void Main()
         {
 
@@ -103,31 +102,7 @@ namespace xBIM_IFC_Trial
                 Dictionary<string, IfcBuildingStorey> storeyids;
 
                 var project = model.Instances.FirstOrDefault<IIfcProject>();
-
-                var be = model.Instances.OfType<IIfcBuildingStorey>();
-                Console.WriteLine("buildingelems : " + be.Count());
-               
-
-
-                TransformGraph tgraph = new TransformGraph(model);
-                tgraph.AddProducts(be);
-                var nodes = tgraph.ProductNodes;
-                //nodes.Where(x => x.GetType() == )
-                var rootnode = tgraph.Root;
-                Console.WriteLine("ROOT : " + rootnode.ProductLabel);
-
-                foreach (TransformNode tn in nodes.Values)
-                {
-                    Console.WriteLine(tn.ToString() +  tn.ProductLabel);
-                    foreach (var n in tn.Children)
-                    {
-                        Console.WriteLine(n.ToString() + n.ProductLabel);
-                    }
-                }
-                
-
-                //buildhierarchy(rootnode, 1);
-
+                               
                 IEnumerable<IfcSpace> spaces = model.Instances.OfType<IfcSpace>();
                 spaceids = getspaceelementids(spaces);
 
@@ -135,19 +110,97 @@ namespace xBIM_IFC_Trial
                 storeyids = getstoreyelementids(storeys);
 
                 //PrintHierarchy(project, 0, spaceids, storeyids);
+                
+                /************************************************************************/
+
+                //var context = new Xbim3DModelContext(model);
+                //context.CreateContext();
+
+                //XbimTessellator tesselator = new XbimTessellator(model, XbimGeometryType.TriangulatedMesh);
+
+                //var sg = context.ShapeGeometries();
+                //foreach (var ssg in sg)
+                //{
+                //    Console.WriteLine(ssg.Format);
+                //    //context.ShapeGeometryMeshOf(ssg.IfcShapeLabel);
+                //    IXbimGeometryObject gobj = ssg as IXbimGeometryObject;
+
+                //}
 
                 /************************************************************************/
                 
-            }
+                var context = new Xbim3DModelContext(model);
+                context.CreateContext();
+               
+
+                var item = model.Instances.FirstOrDefault<IIfcWall>();
+                var productshape = context.ShapeInstancesOf((IIfcProduct)item);
+                    
+                var _productShape = productshape.Where(s => s.RepresentationType != XbimGeometryRepresentationType.OpeningsAndAdditionsExcluded).ToList();
+                
+                
+
+                XbimShapeTriangulation mesh = null;
+                
+                foreach (var shapeInstance in _productShape)
+                {
+                    
+                    var geometry = context.ShapeGeometry(shapeInstance);
+                    Console.WriteLine(shapeInstance.ShapeGeometryLabel);
+                    Console.WriteLine("===="+geometry.GetType());
+                    Console.WriteLine(geometry.Format);
+           
+                    Console.WriteLine(context.ShapeGeometry(shapeInstance.ShapeGeometryLabel));
+                    var ms = new MemoryStream(((IXbimShapeGeometryData)geometry).ShapeData);
+                    var br = new BinaryReader(ms);
+
+
+
+                    mesh = br.ReadShapeTriangulation();
+                    mesh = mesh.Transform(((XbimShapeInstance)shapeInstance).Transformation);
+                    Console.WriteLine (mesh.Faces.Count());
+                    //Console.WriteLine(mesh.Faces.ToList());
+                    foreach (var m in mesh.Faces.ToList())
+                    {
+                        Console.WriteLine("Triangle count on face: " + m.TriangleCount);
+                        
+                       foreach (var x in m.Indices)
+                        {
+                            Console.WriteLine(x);
+                        }
+                        Console.WriteLine("Indices COUNT ===== "+m.Indices.Count());
+                        
+                    }
+                    foreach (var m in mesh.Vertices.ToList())
+                    {
+                        Console.WriteLine(m.ToString());
+                        Console.WriteLine(m.X + " _ " +  m.Y + " _ " + m.Z);
+                    }
+                }
+
+                    //var geometries = context.ShapeGeometries();
+
+                    //foreach (var geo in geometries)
+                    //{
+                    //    Console.WriteLine(geo.Format);
+                    //    //if(geo.IfcShapeLabel.Equals(162)) Console.WriteLine("---" + geo.IfcShapeLabel.Equals(123) + "==="+ geo.ShapeLabel+ "==="+ geo.Format);
+                    //    Console.WriteLine("---" + geo.ShapeLabel);
+
+                    //    Console.WriteLine("---" + geo.IfcShapeLabel);
+
+                    //    var triangulated = context.ShapeGeometryMeshOf(geo);
+                    ////    Console.WriteLine(triangulated.TriangleIndices.Count());
+                    //}
+                }
 
 
         }
-    
+
         private static void PrintHierarchy(IIfcObjectDefinition o, int level, Dictionary<string, IfcSpace> spaceidset, Dictionary<string, IfcBuildingStorey> storeyidset)
         {
-            Console.WriteLine($"{GetIndent(level)}{">" + o.Name} [{o.GetType().Name}]");
+            Console.WriteLine($"{GetIndent(level)}{" >> " + o.Name} [{o.GetType().Name}{ " | " + o.EntityLabel }]");
             var item = o.IsDecomposedBy.SelectMany(r => r.RelatedObjects);
-            
+
             foreach (var i in item)
             {
                 PrintHierarchy(i, level + 2, spaceidset, storeyidset);
@@ -164,7 +217,9 @@ namespace xBIM_IFC_Trial
                         Console.WriteLine($"{GetIndent(level + 3)}" + "OBJECTS FOUND ARE: ");
                         foreach (var sne in spacenodelelems)
                         {
-                            Console.WriteLine($"{GetIndent(level + 4)}{"->" + sne.Name} [{sne.GetType().Name}]");
+                            var parent = sne.IsContainedIn;
+                            
+                            Console.WriteLine($"{GetIndent(level + 4)}{" -> " + sne.Name} [{sne.GetType().Name}{ " | " + sne.EntityLabel }{"PARENT : " + parent}]");
                         }
                     }
                 }
@@ -180,8 +235,10 @@ namespace xBIM_IFC_Trial
                         Console.WriteLine($"{GetIndent(level + 3)}" + "OTHER OBJECTS FOUND UNDER STOREY ARE: ");
                         foreach (var bsne in bsnodelelems)
                         {
+                            var parent = bsne.IsContainedIn;
                             
-                            Console.WriteLine($"{GetIndent(level + 4)}{"->" + bsne.Name} [{bsne.GetType().Name}]{ " TRANSLATION: "}");
+                            Console.WriteLine($"{GetIndent(level + 4)}{" -> " + bsne.Name} [{bsne.GetType().Name}{ " | " + bsne.EntityLabel } {"PARENT : " + parent}]");
+
                             
                         }
                     }
@@ -200,12 +257,12 @@ namespace xBIM_IFC_Trial
             return indent;
         }
 
-        private static Dictionary<string,IfcSpace> getspaceelementids (IEnumerable<IfcSpace> spaces_ien)
+        private static Dictionary<string, IfcSpace> getspaceelementids(IEnumerable<IfcSpace> spaces_ien)
         {
             Dictionary<string, IfcSpace> eids = new Dictionary<string, IfcSpace>();
-            foreach ( IfcSpace s in spaces_ien)
+            foreach (IfcSpace s in spaces_ien)
             {
-                eids.Add(s.GlobalId.ToString(),s);
+                eids.Add(s.GlobalId.ToString(), s);
                 //Console.WriteLine("Gid for " + s.Name + " is: " +s.GlobalId.ToString());
             }
 
