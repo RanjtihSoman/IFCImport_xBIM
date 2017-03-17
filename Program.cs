@@ -141,7 +141,7 @@ namespace xBIM_IFC_Trial
                             var eid = sne.EntityLabel.ToString();
 
                             Console.WriteLine("\n");
-                            Console.WriteLine($"{GetIndent(level + 5)}{" -> " + sne.Name} [{sne.GetType().Name}{ " | #" + sne.EntityLabel }{" | PARENT : #" + parent.EntityLabel}]");
+                            Console.WriteLine($"{GetIndent(level + 5)}{" --> " + sne.Name} {sne.GetType().Name}{ " | #" + sne.EntityLabel }{" | PARENT : #" + parent.EntityLabel + "\n"}]");
 
                             var si = _shapes.Find(x => x.IfcProductLabel.ToString() == eid);
                             //Console.WriteLine("------------------Matches found :" + si.ShapeGeometryLabel.ToString());
@@ -164,8 +164,8 @@ namespace xBIM_IFC_Trial
                             var parent = bsne.IsContainedIn;
                             var eid = bsne.EntityLabel.ToString();
 
-                            Console.WriteLine("\n");
-                            Console.WriteLine($"{GetIndent(level + 5)}{" -> " + bsne.Name} [{bsne.GetType().Name}{ " | #" + bsne.EntityLabel } {" | PARENT : #" + parent.EntityLabel}]");
+                            //Console.WriteLine("\n");
+                            Console.WriteLine($"{GetIndent(level + 5)}{" --> " + bsne.Name} {bsne.GetType().Name}{ " | #" + bsne.EntityLabel } {" | PARENT : #" + parent.EntityLabel + "\n"}]");
 
                             var si = _shapes.Find(x => x.IfcProductLabel.ToString() == eid);
                             //Console.WriteLine("------------------Matches found :" + si.ShapeGeometryLabel.ToString());
@@ -268,8 +268,9 @@ namespace xBIM_IFC_Trial
 
             mesh = br.ReadShapeTriangulation();
             mesh = mesh.Transform(((XbimShapeInstance)shape).Transformation);
-            
-            Console.WriteLine($"{GetIndent(11)}{"No. of faces on the shape: #"+ shape.IfcProductLabel + mesh.Faces.Count()}");
+
+            //Console.WriteLine("\n");
+            Console.WriteLine($"{GetIndent(11)}{"No. of faces on the shape #"+ shape.IfcProductLabel +": " + mesh.Faces.Count()}");
 
             var facesfound = mesh.Faces.ToList();
 
@@ -281,10 +282,11 @@ namespace xBIM_IFC_Trial
                     Console.WriteLine($"{GetIndent(13)}{" -> " + fi}");
                 }
 
-                Console.WriteLine($"{GetIndent(11)}{"Indices COUNT ===== " + f.Indices.Count()}");
+                //Console.WriteLine($"{GetIndent(11)}{"Indices COUNT ===== " + f.Indices.Count()}");
             }
-            
-            Console.WriteLine($"{GetIndent(13)}{" Vertices of the shape: #" + shape.IfcProductLabel}");
+
+            Console.WriteLine("\n");
+            Console.WriteLine($"{GetIndent(13)}{"Vertices of the shape: #" + shape.IfcProductLabel}");
             foreach (var v in mesh.Vertices.ToList())
             {
                 Console.WriteLine($"{GetIndent(13)}{" vertex: " + mesh.Vertices.ToList().IndexOf(v) + " " + v.X + " _ " + v.Y + " _ " + v.Z}");
