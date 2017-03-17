@@ -18,8 +18,9 @@ namespace xBIM_IFC_Trial
 
     class Program
     {
-        const string file = "D:\\THESIS_ANI\\xBIM\\2011-09-14-Duplex-IFC\\Duplex_A_20110907_optimized.ifc";
+        //const string file = "D:\\THESIS_ANI\\xBIM\\2011-09-14-Duplex-IFC\\Duplex_A_20110907_optimized.ifc";
         //const string file = "D:\\THESIS_ANI\\xBIM\\trial_openings_IFC_2x3coord.ifc";
+        const string file = "D:\\THESIS_ANI\\xBIM\\simplegeometry_trial.ifc";
         //const string file = "F:\\TUM\\STUDIES\\THESIS\\BIMtoUnity\\xBIM\\IFC_samplefiles\\2011-09-14-Clinic-IFC\\trialbim_simple.ifc";
 
         public static void Main()
@@ -31,6 +32,8 @@ namespace xBIM_IFC_Trial
                 Console.WriteLine("\n" + "---------------------------------------S T A R T---------------------------------------" + "\n");
                 Dictionary<string, IfcSpace> spaceids;
                 Dictionary<string, IfcBuildingStorey> storeyids;
+                //Dictionary<string, XbimShapeInstance> shapelabels = new Dictionary<string, XbimShapeInstance>();
+                //List<XbimShapeInstance> shapes = new List<XbimShapeInstance>();
 
                 var project = model.Instances.FirstOrDefault<IIfcProject>();
 
@@ -40,84 +43,89 @@ namespace xBIM_IFC_Trial
                 IEnumerable<IfcBuildingStorey> storeys = model.Instances.OfType<IfcBuildingStorey>();
                 storeyids = getstoreyelementids(storeys);
 
-                //PrintHierarchy(project, 0, spaceids, storeyids);
-
-
-                /************************************************************************/
-
-                //var context = new Xbim3DModelContext(model);
-                //context.CreateContext();
-
-                //XbimTessellator tesselator = new XbimTessellator(model, XbimGeometryType.TriangulatedMesh);
-
-                /************************************************************************/
-
                 var context = new Xbim3DModelContext(model);
                 context.CreateContext();
 
                 var productshape = context.ShapeInstances();
 
-                var _productShape = productshape.Where(s => s.RepresentationType != XbimGeometryRepresentationType.OpeningsAndAdditionsExcluded).ToList();
-
-                XbimShapeTriangulation mesh = null;
+                var _productShape = context.ShapeInstances().Where(s => s.RepresentationType != XbimGeometryRepresentationType.OpeningsAndAdditionsExcluded).ToList();
 
                 Console.WriteLine("No of shape Instances in the model is : " + _productShape.Count());
-                foreach (var shapeInstance in _productShape)
-                {
-                    Console.WriteLine(" \n <-------------------------------shape: #" + shapeInstance.IfcProductLabel + "-------------------------------> \n");
 
-                    var geometry = context.ShapeGeometry(shapeInstance);
+                
+                PrintHierarchy(project, 0, spaceids, storeyids, _productShape, context);
 
-                    //Console.WriteLine("====" + geometry.GetType());
-                    Console.WriteLine("Geometry Type: " + geometry.Format);
 
-                    var ms = new MemoryStream(((IXbimShapeGeometryData)geometry).ShapeData);
-                    var br = new BinaryReader(ms);
+                /************************************************************************/
 
-                    mesh = br.ReadShapeTriangulation();
-                    mesh = mesh.Transform(((XbimShapeInstance)shapeInstance).Transformation);
+                //XbimShapeTriangulation mesh = null;
 
-                    Console.WriteLine("No. of faces on this ShapeInstance: " + mesh.Faces.Count());
+                //Console.WriteLine("No of shape Instances in the model is : " + _productShape.Count());
+                
+                //foreach (var shapeInstance in _productShape)
+                //{
+                //    Console.WriteLine(" \n <-------------------------------shape: #" + shapeInstance.IfcProductLabel + "-------------------------------> \n");
 
-                    var facesfound = mesh.Faces.ToList();
+                //    var geometry = context.ShapeGeometry(shapeInstance);
 
-                    //var triangleCount = mesh.Faces.Aggregate(face => face.TriangleCount);
+                //    //Console.WriteLine("====" + geometry.GetType());
+                //    Console.WriteLine("Geometry Type: " + geometry.Format);
 
-                    foreach (var f in facesfound)
-                    {
-                        Console.WriteLine("Triangle count on face: " + f.GetType() + " :mesh is  " + f.TriangleCount);
+                //    var ms = new MemoryStream(((IXbimShapeGeometryData)geometry).ShapeData);
+                //    var br = new BinaryReader(ms);
 
-                        foreach (var fi in f.Indices)
-                        {
-                            Console.WriteLine(" -> " + fi);
-                        }
-                        Console.WriteLine("Indices COUNT ===== " + f.Indices.Count());
+                //    mesh = br.ReadShapeTriangulation();
+                //    mesh = mesh.Transform(((XbimShapeInstance)shapeInstance).Transformation);
 
-                    }
+                //    Console.WriteLine("No. of faces on this ShapeInstance: " + mesh.Faces.Count());
 
-                    Console.WriteLine(" \n Vertices of the Geometry: ");
-                    foreach (var v in mesh.Vertices.ToList())
-                    {
-                        Console.WriteLine(" vertex: " + mesh.Vertices.ToList().IndexOf(v) + " " + v.X + " _ " + v.Y + " _ " + v.Z);
+                //    var facesfound = mesh.Faces.ToList();
 
-                    }
-                }
+                //    //var triangleCount = mesh.Faces.Aggregate(face => face.TriangleCount);
 
+                //    foreach (var f in facesfound)
+                //    {
+                //        Console.WriteLine("Triangle count on face: " + f.GetType() + " :mesh is  " + f.TriangleCount);
+
+                //        foreach (var fi in f.Indices)
+                //        {
+                //            Console.WriteLine(" -> " + fi);
+                //        }
+                //        Console.WriteLine("Indices COUNT ===== " + f.Indices.Count());
+
+                //    }
+
+                //    Console.WriteLine(" \n Vertices of the Geometry: ");
+                //    foreach (var v in mesh.Vertices.ToList())
+                //    {
+                //        Console.WriteLine(" vertex: " + mesh.Vertices.ToList().IndexOf(v) + " " + v.X + " _ " + v.Y + " _ " + v.Z);
+
+                //    }
+                //}
+
+                /************************************************************************/
             }
 
         }
 
-        private static void PrintHierarchy(IIfcObjectDefinition o, int level, Dictionary<string, IfcSpace> spaceidset, Dictionary<string, IfcBuildingStorey> storeyidset)
+        private static void PrintHierarchy(IIfcObjectDefinition o, int level, Dictionary<string, IfcSpace> spaceidset, Dictionary<string, IfcBuildingStorey> storeyidset, List<XbimShapeInstance> _shapes, Xbim3DModelContext mod_context )
         {
             Console.WriteLine($"{GetIndent(level)}{" >> " + o.Name} [{o.GetType().Name}{ " | #" + o.EntityLabel }]");
             var item = o.IsDecomposedBy.SelectMany(r => r.RelatedObjects);
 
             foreach (var i in item)
             {
-                PrintHierarchy(i, level + 2, spaceidset, storeyidset);
 
                 var id = i.GlobalId.ToString();
+                var e_id = i.EntityLabel.ToString();
+                var _si = _shapes.Find(x => x.IfcProductLabel.ToString() == e_id);
 
+                //Console.WriteLine("------------------Matches found :" + _si.ShapeGeometryLabel.ToString());
+
+                PrintHierarchy(i, level + 2, spaceidset, storeyidset, _shapes, mod_context);
+
+                //Console.WriteLine("Instance ID: " + eid);
+                
                 if (spaceidset.ContainsKey(id))
                 {
                     IfcSpace spacenode;
@@ -130,8 +138,14 @@ namespace xBIM_IFC_Trial
                         foreach (var sne in spacenodelelems)
                         {
                             var parent = sne.IsContainedIn;
+                            var eid = sne.EntityLabel.ToString();
 
+                            Console.WriteLine("\n");
                             Console.WriteLine($"{GetIndent(level + 5)}{" -> " + sne.Name} [{sne.GetType().Name}{ " | #" + sne.EntityLabel }{" | PARENT : #" + parent.EntityLabel}]");
+
+                            var si = _shapes.Find(x => x.IfcProductLabel.ToString() == eid);
+                            //Console.WriteLine("------------------Matches found :" + si.ShapeGeometryLabel.ToString());
+                            getgeometry(si, mod_context);
                         }
                     }
                 }
@@ -148,12 +162,59 @@ namespace xBIM_IFC_Trial
                         foreach (var bsne in bsnodelelems)
                         {
                             var parent = bsne.IsContainedIn;
+                            var eid = bsne.EntityLabel.ToString();
 
+                            Console.WriteLine("\n");
                             Console.WriteLine($"{GetIndent(level + 5)}{" -> " + bsne.Name} [{bsne.GetType().Name}{ " | #" + bsne.EntityLabel } {" | PARENT : #" + parent.EntityLabel}]");
 
+                            var si = _shapes.Find(x => x.IfcProductLabel.ToString() == eid);
+                            //Console.WriteLine("------------------Matches found :" + si.ShapeGeometryLabel.ToString());
+                            getgeometry(si, mod_context);
                         }
                     }
+
                 }
+
+
+                /***************************************************************************/
+                
+
+                ////var geometry = mod_context.ShapeGeometry(si);
+
+                //////Console.WriteLine("====" + geometry.GetType());
+                ////Console.WriteLine("Geometry Type: " + geometry.Format);
+
+                ////var ms = new MemoryStream(((IXbimShapeGeometryData)geometry).ShapeData);
+                ////var br = new BinaryReader(ms);
+
+                ////mesh = br.ReadShapeTriangulation();
+                ////mesh = mesh.Transform(((XbimShapeInstance)si).Transformation);
+
+                ////Console.WriteLine("No. of faces on this ShapeInstance: " + mesh.Faces.Count());
+
+                ////var facesfound = mesh.Faces.ToList();
+
+                //////var triangleCount = mesh.Faces.Aggregate(face => face.TriangleCount);
+
+                ////foreach (var f in facesfound)
+                ////{
+                ////    Console.WriteLine("Triangle count on face: " + f.GetType() + " :mesh is  " + f.TriangleCount);
+
+                ////    foreach (var fi in f.Indices)
+                ////    {
+                ////        Console.WriteLine(" -> " + fi);
+                ////    }
+                ////    Console.WriteLine("Indices COUNT ===== " + f.Indices.Count());
+
+                ////}
+
+                ////Console.WriteLine(" \n Vertices of the Geometry: ");
+                ////foreach (var v in mesh.Vertices.ToList())
+                ////{
+                ////    Console.WriteLine(" vertex: " + mesh.Vertices.ToList().IndexOf(v) + " " + v.X + " _ " + v.Y + " _ " + v.Z);
+                ////}
+
+                /***************************************************************************/
 
             }
 
@@ -191,5 +252,45 @@ namespace xBIM_IFC_Trial
             return eids;
         }
 
+        private static void getgeometry (XbimShapeInstance shape, Xbim3DModelContext m_context)
+        {
+
+            XbimShapeTriangulation mesh = null;
+            
+            var geometry = m_context.ShapeGeometry(shape);
+
+            //Console.WriteLine("====" + geometry.GetType());
+            Console.WriteLine($"{GetIndent(11)}{"Geometry Type: " + geometry.Format}");
+            
+
+            var ms = new MemoryStream(((IXbimShapeGeometryData)geometry).ShapeData);
+            var br = new BinaryReader(ms);
+
+            mesh = br.ReadShapeTriangulation();
+            mesh = mesh.Transform(((XbimShapeInstance)shape).Transformation);
+            
+            Console.WriteLine($"{GetIndent(11)}{"No. of faces on the shape: #"+ shape.IfcProductLabel + mesh.Faces.Count()}");
+
+            var facesfound = mesh.Faces.ToList();
+
+            foreach (var f in facesfound)
+            {
+                Console.WriteLine($"{GetIndent(13)}{"Triangle count on face: " + f.GetType() + " :mesh is  " + f.TriangleCount}");
+                foreach (var fi in f.Indices)
+                {
+                    Console.WriteLine($"{GetIndent(13)}{" -> " + fi}");
+                }
+
+                Console.WriteLine($"{GetIndent(11)}{"Indices COUNT ===== " + f.Indices.Count()}");
+            }
+            
+            Console.WriteLine($"{GetIndent(13)}{" Vertices of the shape: #" + shape.IfcProductLabel}");
+            foreach (var v in mesh.Vertices.ToList())
+            {
+                Console.WriteLine($"{GetIndent(13)}{" vertex: " + mesh.Vertices.ToList().IndexOf(v) + " " + v.X + " _ " + v.Y + " _ " + v.Z}");
+
+            }
+        }
+    
     }
 }
